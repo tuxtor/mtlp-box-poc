@@ -49,37 +49,6 @@ receivers:
                 service: 'grafana'
                 group: 'infrastructure'
 
-        # Scrape from the Mythical Server and Requester service.
-        - job_name: 'mythical'
-          scrape_interval: 2s
-          static_configs:
-            - targets: ['mythical-server:4000']
-              labels:
-                service: 'mythical-server'
-                group: 'mythical'
-            - targets: ['mythical-requester:4001']
-              labels:
-                service: 'mythical-requester'
-                group: 'mythical'
-
-        # Scrape from the Beyla Mythical services.
-        - job_name: 'beyla-infra'
-          scrape_interval: 15s
-          static_configs:
-            - targets: ['beyla-requester:9090']
-              labels:
-                service: 'beyla-requester'
-                group: 'beyla'
-            - targets: ['beyla-server:9090']
-              labels:
-                service: 'beyla-server'
-                group: 'beyla'
-            - targets: ['beyla-recorder:9090']
-              labels:
-                service: 'beyla-recorder'
-                group: 'beyla'
-
-
 # Define processors to process received data.
 # See https://opentelemetry.io/docs/collector/configuration/#processors
 processors:
@@ -149,6 +118,8 @@ connectors:
 # See https://opentelemetry.io/docs/collector/configuration/#exporters
 # Also see https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor#recommended-processors
 exporters:
+  # Debug
+  debug:
   # Exporter for sending trace data to Tempo.
   otlp/grafana:
     # Send to the locally running Tempo service.
@@ -165,6 +136,8 @@ exporters:
     tls:
       insecure: true
 
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
 # Define the full service graph for the OpenTelemetry collector.
 service:
   # A pipeline can exist for each of the signals received.
@@ -181,7 +154,7 @@ service:
       # from within the OpenTelemetry Collector.
       #processors: [servicegraph, batch]
       # Export to the `otlp/grafana` exporter.
-      exporters: [otlp/grafana]
+      exporters: [debug, otlp/grafana]
       # Comment out other `exporters` definitions and uncomment the line below to generate span metrics
       # from within the OpenTelemetry Collector as well as exporting traces to Tempo.
       #exporters: [otlp/grafana, spanmetrics]
@@ -196,4 +169,13 @@ service:
       # Use the `batch` processor to process received metrics.
       processors: [batch]
       # Export to the `prometheusremtotewrite` exporter.
-      exporters: [prometheusremotewrite]
+      exporters: [debug, prometheusremotewrite]
+
+    # Define the logs pipeline
+    logs:
+      # Receive logs from `otlp` receiver.
+      receivers: [ otlp ]
+      # Use the `batch` processor to process received logs.
+      processors: [ batch ]
+      # Export to the `otlphttp/loki` exporter.
+      exporters: [debug, otlphttp/loki]
