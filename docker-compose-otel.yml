@@ -1,21 +1,24 @@
-name: grafana-intro-to-mltp-otel
+name: mtlp_box_poc
 volumes:
   grafana:
+networks:
+  mltp_network:
 services:
   # The opentelemetry-collector batches and processes traces sent to it.
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.120.0
     ports:
-      #- "12347:12345"
-      #- "12348:12348"
-      #- "6832:6832"
-      #- "55679:55679"
+#      - "12347:12345"
+#      - "12348:12348"
+#      - "6832:6832"
+#      - "55679:55679"
       - "4317:4317"
       - "4318:4318"
     volumes:
       - ./otel/otel.yml:/etc/otel-collector-config.yml
     command: ["--config=/etc/otel-collector-config.yml"]
-
+    networks:
+      - mltp_network
   # The Grafana dashboarding server.
   grafana:
     image: grafana/grafana:11.2.0
@@ -30,7 +33,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
-
+    networks:
+      - mltp_network
   # The Tempo service stores traces send to it by Grafana opentelemetry-collector, and takes
   # queries from Grafana to visualise those traces.
   tempo:
@@ -43,7 +47,8 @@ services:
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - "./tempo/tempo.yaml:/etc/tempo.yaml"
-
+    networks:
+      - mltp_network
   # The Loki service stores logs sent to it, and takes queries from Grafana
   # to visualise those logs.
   loki:
@@ -53,7 +58,8 @@ services:
 #      - "3100:3100"
     volumes:
       - "./loki/loki.yaml:/etc/loki/loki.yaml"
-
+    networks:
+      - mltp_network
   mimir:
     image: grafana/mimir:2.13.0
     command: ["-ingester.native-histograms-ingestion-enabled=true", "-config.file=/etc/mimir.yaml"]
@@ -61,3 +67,5 @@ services:
 #      - "9009:9009"
     volumes:
       - "./mimir/mimir.yaml:/etc/mimir.yaml"
+    networks:
+      - mltp_network
