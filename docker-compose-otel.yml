@@ -1,6 +1,14 @@
 name: mtlp_box_poc
 volumes:
   grafana:
+  loki_volume:
+#    driver: local
+#    driver_opts:
+#      type: none
+#      device: "/path/host/dir"
+#      o: bind
+  tempo_volume:
+  mimir_volume:
 networks:
   mltp_network:
 services:
@@ -47,6 +55,7 @@ services:
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - "./tempo/tempo.yaml:/etc/tempo.yaml"
+      - tempo_volume:/tmp/tempo
     networks:
       - mltp_network
   # The Loki service stores logs sent to it, and takes queries from Grafana
@@ -58,6 +67,7 @@ services:
 #      - "3100:3100"
     volumes:
       - "./loki/loki.yaml:/etc/loki/loki.yaml"
+      - loki_volume:/loki
     networks:
       - mltp_network
   mimir:
@@ -67,5 +77,6 @@ services:
 #      - "9009:9009"
     volumes:
       - "./mimir/mimir.yaml:/etc/mimir.yaml"
+      - mimir_volume:/tmp/mimir
     networks:
       - mltp_network
